@@ -23,11 +23,11 @@ const InfoBoxes = () => {
             backgroundColor="bg-blue-100"
             buttonInfo={{
               text: "Add Property",
-              link: "/properties",
+              link: "/properties/add",
               backgroundColor: "bg-blue-500",
             }}
           >
-            ist your properties and reach potential tenants. Rent as an airbnb
+            List your properties and reach potential tenants. Rent as an airbnb
             or long term.
           </InfoBox>
         </div>
