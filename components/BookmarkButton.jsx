@@ -68,8 +68,9 @@ const BookmarkButton = ({ property }) => {
     display: "block",
     margin: "10px auto",
   };
-  if (loading)
-    return <PuffLoader color="#3b82f6" size={20} cssOverride={override} />; //<p className="text-center">Loading...</p>;
+  if (loading) {
+    return <PuffLoader color="#3b82f6" size={20} cssOverride={override} />;
+  }
   return isBookmarked ? (
     <button
       onClick={handleClick}
