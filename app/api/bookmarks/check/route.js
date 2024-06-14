@@ -1,4 +1,6 @@
+import PropertiesPage from "@/app/properties/page";
 import connectDB from "@/config/database";
+import Property from "@/models/Property";
 import User from "@/models/User";
 import { getSessionUser } from "@/utils/getSessionUser";
 
@@ -17,7 +19,6 @@ export const POST = async (request) => {
     const user = await User.findOne({ _id: userId });
     // Check if property is bookmarked
     let isBookmarked = user.bookmarks.includes(propertyId);
-
     return new Response(JSON.stringify({ isBookmarked }), {
       status: 200,
     });
