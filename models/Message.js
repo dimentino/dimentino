@@ -33,7 +33,7 @@ const MessageSchema = new Schema(
     },
     read: {
       type: Boolean,
-      defaul: false,
+      default: false,
     },
   },
   {
