@@ -29,6 +29,7 @@ const FeaturedPropertyCard = ({ property }) => {
         width={0}
         height={0}
         sizes="100vw"
+		priority={true}
       />
       <div className="p-6">
         <h3 className="text-xl font-bold">{property.name}</h3>
