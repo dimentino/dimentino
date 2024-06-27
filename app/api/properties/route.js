@@ -7,18 +7,33 @@ import cloudinary from "@/config/cloudinary";
 export const GET = async (request) => {
   try {
     await connectDB();
-    const page = request.nextUrl.searchParams.get("page") || 1;
-    const pageSize = request.nextUrl.searchParams.get("pageSize") || 6;
+
+    const url = new URL(request.url);
+    const page = parseInt(url.searchParams.get("page")) || 1;
+    const pageSize = parseInt(url.searchParams.get("pageSize")) || 6;
     const skip = (page - 1) * pageSize;
-    const total = await Property.countDocuments({});
-    const properties = await Property.find({}).skip(skip).limit(pageSize);
+
+    const [total, properties] = await Promise.all([
+      Property.countDocuments({}),
+      Property.find({}).skip(skip).limit(pageSize),
+    ]);
+
     const result = { total, properties };
+
     return new Response(JSON.stringify(result), {
       status: 200,
+      headers: {
+        "Content-Type": "application/json",
+      },
     });
   } catch (error) {
-    console.log(error);
-    return new Response("Something Went Wrong", { status: 500 });
+    console.error("Error fetching properties:", error);
+    return new Response(JSON.stringify({ message: "Something Went Wrong" }), {
+      status: 500,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
   }
 };
 
@@ -27,15 +42,20 @@ export const POST = async (request) => {
     await connectDB();
     const sessionUser = await getSessionUser();
     if (!sessionUser || !sessionUser.userId) {
-      return new Response("User Id is required", { status: 401 });
+      return new Response(JSON.stringify({ message: "User Id is required" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
     }
     const { userId } = sessionUser;
     const formData = await request.formData();
-    // Access all valies from amenities and images
+
+    // Access all values from amenities and images
     const amenities = formData.getAll("amenities");
     const images = formData
       .getAll("images")
       .filter((image) => image.name !== "");
+
     // Create propertyData object for database
     const propertyData = {
       type: formData.get("type"),
@@ -63,36 +83,39 @@ export const POST = async (request) => {
       },
       owner: userId,
     };
-    // Upload image(s) to Cloudinary
-    const imageUploadPromises = [];
-    for (const image of images) {
-      const imageBuffer = await image.arrayBuffer();
-      const imageArray = Array.from(new Uint8Array(imageBuffer));
-      const imageData = Buffer.from(imageArray);
-      // Convert the image data to base64
-      const imageBase64 = imageData.toString("base64");
-      // Make request to upload to Cloudinary
-      const result = await cloudinary.uploader.upload(
-        `data:image/png;base64,${imageBase64}`,
-        {
-          folder: "propertypulse",
-        }
-      );
-      imageUploadPromises.push(result.secure_url);
-      // Wait for all images to upload
-      const uploadedImages = await Promise.all(imageUploadPromises);
-      // Add uploaded images to the propertyData object
-      propertyData.images = uploadedImages;
-    }
+
+    // Upload images to Cloudinary
+    const uploadedImages = await Promise.all(
+      images.map(async (image) => {
+        const imageBuffer = await image.arrayBuffer();
+        const imageArray = Array.from(new Uint8Array(imageBuffer));
+        const imageData = Buffer.from(imageArray);
+        const imageBase64 = imageData.toString("base64");
+        const result = await cloudinary.uploader.upload(
+          `data:image/png;base64,${imageBase64}`,
+          { folder: "propertypulse" }
+        );
+        return result.secure_url;
+      })
+    );
+
+    propertyData.images = uploadedImages;
+
     const newProperty = new Property(propertyData);
     await newProperty.save();
+
     return Response.redirect(
-      `${process.env.NEXTAUTH_URL}/properties/${newProperty._id}`
+      `${process.env.NEXTAUTH_URL}/properties/${newProperty._id}`,
+      {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      }
     );
-    /* return new Response(JSON.stringify({ message: "Success" }), {
-      status: 200,
-    }); */
   } catch (error) {
-    return new Response("Failed to add property", { status: 500 });
+    console.error("Error creating property:", error);
+    return new Response(JSON.stringify({ message: "Failed to add property" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 };
